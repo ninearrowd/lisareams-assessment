@@ -4,44 +4,339 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Enneagram Assessment</title>
+
   <style>
-    #ennea-assessment { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.35; }
-    .ea-card { max-width: 920px; margin: 0 auto; padding: 20px; border: 1px solid rgba(0,0,0,.12); border-radius: 14px; }
-    .ea-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
-    .ea-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
-    .ea-sub { margin: 0 0 16px; opacity: .8; }
-    .ea-pill { display:inline-block; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); font-size: 12px; opacity: .85; }
-    .ea-progress-wrap { margin: 14px 0 18px; }
-    .ea-progress { height: 10px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
-    .ea-progress > div { height: 100%; width: 0%; background: rgba(0,0,0,.65); transition: width .25s ease; }
-    .ea-q { font-size: 18px; font-weight: 650; margin: 0 0 14px; }
-    .ea-scale { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 8px; }
-    .ea-slider { width: 100%; }
-    .ea-scale-labels { display:flex; justify-content: space-between; font-size: 12px; opacity: .75; }
-    .ea-num { font-size: 14px; opacity: .85; }
-    .ea-actions { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-    .ea-btn { appearance:none; border:1px solid rgba(0,0,0,.2); background: #fff; padding: 10px 14px; border-radius: 12px; cursor:pointer; font-weight: 650; }
-    .ea-btn.primary { background: rgba(0,0,0,.85); color: #fff; border-color: rgba(0,0,0,.85); }
-    .ea-btn:disabled { opacity: .5; cursor: not-allowed; }
-    .ea-divider { height:1px; background: rgba(0,0,0,.10); margin: 18px 0; }
-    .ea-input { width: 100%; max-width: 440px; padding: 10px 12px; border:1px solid rgba(0,0,0,.2); border-radius: 12px; font-size: 14px; }
-    .ea-small { font-size: 12px; opacity: .75; }
-    .ea-results h3 { margin: 0 0 10px; }
-    .ea-bar { height: 10px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
-    .ea-bar > div { height:100%; width:0%; background: rgba(0,0,0,.65); transition: width .35s ease; }
-    .ea-rrow { display:grid; grid-template-columns: 80px 1fr 52px; gap: 10px; align-items:center; margin: 10px 0; }
-    .ea-note { padding: 12px 12px; border: 1px dashed rgba(0,0,0,.25); border-radius: 12px; font-size: 13px; opacity: .9; }
-    .ea-foot { margin-top: 14px; font-size: 12px; opacity: .72; }
-    .ea-wrap { padding: 20px; }
+    :root{
+      --bg: #F7F2EB;         /* Primary */
+      --secondary: #9A8572;  /* Secondary */
+      --accent: #C6866A;     /* Accent */
+      --ink: #2A2420;
+      --muted: #6A5D54;
+
+      --card: rgba(255,255,255,0.78);
+      --stroke: rgba(154,133,114,0.38);
+      --shadow: 0 10px 28px rgba(0,0,0,0.08);
+      --radius: 18px;
+    }
+
+    html, body { height: 100%; }
+
+    body{
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.35;
+    }
+
+    /* Tighten the top so Q1 is immediately visible in an embed */
+    .ea-wrap{
+      padding: 14px 14px 22px;
+    }
+
+    #ennea-assessment{
+      /* Avoid weird inherited styles from host pages */
+      all: initial;
+      display: block;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.35;
+      color: var(--ink);
+    }
+
+    /* Core card */
+    .ea-card{
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 18px;
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+
+    .ea-row{
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .ea-title{
+      font-size: 20px;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+      margin: 0 0 6px;
+    }
+
+    .ea-sub{
+      margin: 0 0 12px;
+      color: var(--muted);
+      opacity: 0.95;
+    }
+
+    .ea-pill{
+      display:inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.55);
+    }
+
+    .ea-progress-wrap{ margin: 12px 0 14px; }
+    .ea-progress{
+      height: 10px;
+      background: rgba(154,133,114,0.18);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(154,133,114,0.22);
+    }
+    .ea-progress > div{
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--secondary));
+      transition: width .25s ease;
+      border-radius: 999px;
+    }
+
+    .ea-q{
+      font-size: 17px;
+      font-weight: 680;
+      margin: 0 0 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .ea-scale{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    /* ============ SLIDER (Premium + usable) ============ */
+    .ea-slider{
+      width: 100%;
+      height: 38px;        /* increases touch target */
+      background: transparent;
+      margin: 0;
+      padding: 0;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    /* Track (WebKit) */
+    .ea-slider::-webkit-slider-runnable-track{
+      height: 9px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--secondary));
+      opacity: 0.9;
+      border: 1px solid rgba(154,133,114,0.28);
+    }
+
+    /* Thumb (WebKit) */
+    .ea-slider::-webkit-slider-thumb{
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid rgba(42,36,32,0.16);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.14);
+      margin-top: -7px; /* centers thumb on 9px track */
+    }
+
+    /* Focus */
+    .ea-slider:focus-visible::-webkit-slider-thumb{
+      outline: 3px solid rgba(198,134,106,0.35);
+      outline-offset: 2px;
+    }
+
+    /* Track (Firefox) */
+    .ea-slider::-moz-range-track{
+      height: 9px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--secondary));
+      opacity: 0.9;
+      border: 1px solid rgba(154,133,114,0.28);
+    }
+
+    /* Thumb (Firefox) */
+    .ea-slider::-moz-range-thumb{
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid rgba(42,36,32,0.16);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.14);
+    }
+
+    .ea-scale-labels{
+      display:flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: .95;
+      padding: 0 2px;
+    }
+
+    .ea-num{
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .ea-actions{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .ea-btn{
+      appearance: none;
+      border: 1px solid rgba(154,133,114,0.55);
+      background: rgba(255,255,255,0.7);
+      padding: 10px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--ink);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform .04s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .ea-btn:hover{ box-shadow: 0 10px 22px rgba(0,0,0,0.08); }
+    .ea-btn:active{ transform: translateY(1px); }
+    .ea-btn:disabled{ opacity: .55; cursor: not-allowed; }
+
+    .ea-btn.primary{
+      background: var(--accent);
+      color: #fff;
+      border-color: rgba(198,134,106,0.65);
+    }
+
+    .ea-divider{
+      height: 1px;
+      background: rgba(154,133,114,0.35);
+      margin: 16px 0;
+    }
+
+    .ea-input{
+      width: 100%;
+      max-width: 440px;
+      padding: 11px 12px;
+      border: 1px solid rgba(154,133,114,0.55);
+      border-radius: 14px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.72);
+      color: var(--ink);
+      outline: none;
+    }
+    .ea-input:focus{
+      box-shadow: 0 0 0 4px rgba(198,134,106,0.18);
+      border-color: rgba(198,134,106,0.75);
+    }
+
+    .ea-small{ font-size: 12px; color: var(--muted); }
+
+    .ea-results h3{
+      margin: 0 0 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .ea-bar{
+      height: 10px;
+      background: rgba(154,133,114,0.20);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(154,133,114,0.22);
+    }
+
+    .ea-bar > div{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--accent), var(--secondary));
+      transition: width .35s ease;
+    }
+
+    .ea-rrow{
+      display:grid;
+      grid-template-columns: 92px 1fr 58px;
+      gap: 10px;
+      align-items:center;
+      margin: 10px 0;
+    }
+
+    .ea-note{
+      padding: 12px 12px;
+      border: 1px dashed rgba(154,133,114,0.75);
+      border-radius: 14px;
+      font-size: 13px;
+      color: var(--ink);
+      background: rgba(255,255,255,0.55);
+    }
+
+    .ea-foot{
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Mobile spacing: even tighter above-the-fold */
+    @media (max-width: 520px){
+      .ea-wrap{ padding: 10px 10px 18px; }
+      .ea-card{ padding: 16px; }
+      .ea-title{ font-size: 19px; }
+      .ea-q{ font-size: 16px; }
+      .ea-rrow{ grid-template-columns: 80px 1fr 52px; }
+    }
   </style>
 </head>
-<body style="margin:0;">
+
+<body>
   <div class="ea-wrap">
     <div id="ennea-assessment"></div>
   </div>
 
   <script>
   (() => {
+    // ==========================================
+    // EMBED AUTO-HEIGHT (postMessage to parent)
+    // ==========================================
+    const postEmbedHeight = () => {
+      try {
+        const height = Math.max(
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight,
+          document.body.offsetHeight,
+          document.documentElement.offsetHeight,
+          document.body.clientHeight,
+          document.documentElement.clientHeight
+        );
+        window.parent?.postMessage({ type: "ENNEA_IFRAME_HEIGHT", height }, "*");
+      } catch (e) {}
+    };
+
+    const observeHeightChanges = () => {
+      // Post on load + resize
+      window.addEventListener("load", postEmbedHeight);
+      window.addEventListener("resize", postEmbedHeight);
+
+      // Post after DOM changes (question changes, results rendering, email gate, etc.)
+      const mo = new MutationObserver(() => postEmbedHeight());
+      mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+
+      // A tiny extra nudge shortly after render for slow fonts/layout
+      setTimeout(postEmbedHeight, 250);
+      setTimeout(postEmbedHeight, 900);
+    };
+    observeHeightChanges();
+
     // =========================
     // EMAILJS CONFIG (YOUR VALUES)
     // =========================
@@ -50,12 +345,11 @@
     const EMAILJS_TEMPLATE_ID = "template_v9pfauy";
     const OWNER_COPY_EMAIL = "hello@lisareams.com";
 
-// =========================
-// CTA LINKS (REPLACE THESE)
-// =========================
-const BOOKING_URL = "https://calendly.com/lisa-vreams/enneatype-deep-dive"; 
-const JOURNAL_URL = "https://lisareams.com/enneajournal";  
-
+    // =========================
+    // CTA LINKS (REPLACE THESE IF NEEDED)
+    // =========================
+    const BOOKING_URL = "https://calendly.com/lisa-vreams/enneatype-deep-dive";
+    const JOURNAL_URL = "https://lisareams.com/enneajournal";
 
     // =========================
     // QUIZ CONFIG
@@ -86,18 +380,18 @@ const JOURNAL_URL = "https://lisareams.com/enneajournal";
       1:"Reformer", 2:"Helper", 3:"Achiever", 4:"Individualist", 5:"Investigator",
       6:"Loyalist", 7:"Enthusiast", 8:"Challenger", 9:"Peacemaker"
     }[t] || "");
-const typeCtaNudge = (t) => ({
-  1: "If you’re noticing a strong inner critic or a sense of responsibility that never turns off, support can help you discern what actually needs your energy — and what doesn’t.",
-  2: "If this brought up questions about your own needs or boundaries, having a space where you are the focus can be surprisingly grounding.",
-  3: "If this surfaced how closely your sense of self is tied to momentum or achievement, this can be a chance to reconnect with who you are when nothing needs to be proven.",
-  4: "If this reflected parts of you that feel tender, complex, or hard to name, support can help you stay with the insight instead of getting lost in it.",
-  5: "If this clarified patterns you’ve long understood intellectually but want to integrate more fully, a structured container can help bridge insight and action.",
-  6: "If you’re holding a lot of possibilities at once, a deeper exploration can help you feel more grounded in what’s actually true for you.",
-  7: "If this highlighted how quickly you move forward, this might be a moment to pause — not to limit yourself, but to deepen your choices.",
-  8: "If this affirmed your strength and clarity, support can help you use that power with more ease and less cost to yourself.",
-  9: "If this surfaced patterns of going along or staying quiet, support can help you reconnect with your own priorities without creating unnecessary conflict."
-}[t] || "");
 
+    const typeCtaNudge = (t) => ({
+      1: "If you’re noticing a strong inner critic or a sense of responsibility that never turns off, support can help you discern what actually needs your energy — and what doesn’t.",
+      2: "If this brought up questions about your own needs or boundaries, having a space where you are the focus can be surprisingly grounding.",
+      3: "If this surfaced how closely your sense of self is tied to momentum or achievement, this can be a chance to reconnect with who you are when nothing needs to be proven.",
+      4: "If this reflected parts of you that feel tender, complex, or hard to name, support can help you stay with the insight instead of getting lost in it.",
+      5: "If this clarified patterns you’ve long understood intellectually but want to integrate more fully, a structured container can help bridge insight and action.",
+      6: "If you’re holding a lot of possibilities at once, a deeper exploration can help you feel more grounded in what’s actually true for you.",
+      7: "If this highlighted how quickly you move forward, this might be a moment to pause — not to limit yourself, but to deepen your choices.",
+      8: "If this affirmed your strength and clarity, support can help you use that power with more ease and less cost to yourself.",
+      9: "If this surfaced patterns of going along or staying quiet, support can help you reconnect with your own priorities without creating unnecessary conflict."
+    }[t] || "");
 
     // EmailJS SDK loader
     const loadEmailJSSDK = () => new Promise((resolve) => {
@@ -298,28 +592,27 @@ const typeCtaNudge = (t) => ({
 
       const subject = "Your Enneagram snapshot (plus what to do with it)";
 
-
       const body =
 `Top 3 matches:\n${topLines}\n\nFull spread:\n${fullLines}\n\nNext step:\nReply with (1) your top 2 types, (2) what feels most stuck lately, (3) what you want instead — and I’ll point you toward a clear growth path.`;
 
       return {
-  to_email: state.email,
-  to_name: state.name || "there",
-  subject,
-  result_title: `${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`,
-  result_body: body,
-  reply_to: "hello@lisareams.com",
-  owner_copy: OWNER_COPY_EMAIL,
-  booking_url: BOOKING_URL,
-  journal_url: JOURNAL_URL
-};
-
+        to_email: state.email,
+        to_name: state.name || "there",
+        subject,
+        result_title: `${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`,
+        result_body: body,
+        reply_to: "hello@lisareams.com",
+        owner_copy: OWNER_COPY_EMAIL,
+        booking_url: BOOKING_URL,
+        journal_url: JOURNAL_URL
+      };
+    };
 
     const renderResults = () => {
       const { perType, sorted } = getScore();
       const top = sorted[0];
       const top3 = sorted.slice(0,3);
-const nudge = typeCtaNudge(top.t);
+      const nudge = typeCtaNudge(top.t);
 
       mount.innerHTML = `
         <div class="ea-card ea-results">
@@ -365,24 +658,25 @@ const nudge = typeCtaNudge(top.t);
           <div class="ea-note">
             <strong>Interpretation tip:</strong> If your top two are close, you may be between types—or answering from your current season (stress, transition, etc.). This is normal, and all it means is that you may need to do a little more learning to lock in your core type.
           </div>
-<div class="ea-divider"></div>
 
-<div class="ea-note">
-  <strong>Want support integrating this?</strong><br/><br/>
-  ${nudge}<br/><br/>
-  Your results are a starting point — not a verdict. If you’d like help making sense of how these patterns show up in your real life, here are two ways to continue.
-</div>
+          <div class="ea-divider"></div>
 
-<div class="ea-actions">
-  <a class="ea-btn primary" href="${BOOKING_URL}" target="_blank" rel="noopener noreferrer">
-    Book an Enneagram Deep Dive (90 minutes)
-  </a>
-  <a class="ea-btn" href="${JOURNAL_URL}" target="_blank" rel="noopener noreferrer">
-    Explore Enneajournal
-  </a>
-</div>
+          <div class="ea-note">
+            <strong>Want support integrating this?</strong><br/><br/>
+            ${nudge}<br/><br/>
+            Your results are a starting point — not a verdict. If you’d like help making sense of how these patterns show up in your real life, here are two ways to continue.
+          </div>
 
           <div class="ea-actions">
+            <a class="ea-btn primary" href="${BOOKING_URL}" target="_blank" rel="noopener noreferrer">
+              Book an Enneagram Deep Dive (90 minutes)
+            </a>
+            <a class="ea-btn" href="${JOURNAL_URL}" target="_blank" rel="noopener noreferrer">
+              Explore Enneajournal
+            </a>
+          </div>
+
+          <div class="ea-actions" style="margin-top:14px;">
             <button class="ea-btn" id="ea-retake">Retake (new random order)</button>
             <button class="ea-btn" id="ea-review2">Review my answers</button>
           </div>
@@ -404,6 +698,8 @@ const nudge = typeCtaNudge(top.t);
         state.idx = state.items.length - 1;
         render();
       });
+
+      postEmbedHeight();
     };
 
     const render = () => {
@@ -456,9 +752,16 @@ const nudge = typeCtaNudge(top.t);
         const backBtn = mount.querySelector("#ea-back");
         const nextBtn = mount.querySelector("#ea-next");
 
-        slider.addEventListener("input", () => { valEl.textContent = slider.value; });
+        // Keep thumb responsive + update text
+        slider.addEventListener("input", () => {
+          valEl.textContent = slider.value;
+          postEmbedHeight();
+        });
 
-        backBtn.addEventListener("click", () => { state.idx = Math.max(0, state.idx - 1); render(); });
+        backBtn.addEventListener("click", () => {
+          state.idx = Math.max(0, state.idx - 1);
+          render();
+        });
 
         nextBtn.addEventListener("click", () => {
           state.answers[it.id] = Number(slider.value);
@@ -466,6 +769,7 @@ const nudge = typeCtaNudge(top.t);
           render();
         });
 
+        postEmbedHeight();
         return;
       }
 
@@ -544,6 +848,7 @@ const nudge = typeCtaNudge(top.t);
         const status = document.getElementById("ea-email-status");
         if (!enabled || !window.emailjs) {
           if (status) status.textContent = "✅ Results shown here. (Email service not available.)";
+          postEmbedHeight();
           return;
         }
 
@@ -554,7 +859,11 @@ const nudge = typeCtaNudge(top.t);
         } catch (e) {
           if (status) status.textContent = "⚠️ Results shown here. Email sending didn’t go through.";
         }
+
+        postEmbedHeight();
       });
+
+      postEmbedHeight();
     };
 
     // Start
