@@ -50,6 +50,13 @@
     const EMAILJS_TEMPLATE_ID = "template_v9pfauy";
     const OWNER_COPY_EMAIL = "hello@lisareams.com";
 
+// =========================
+// CTA LINKS (REPLACE THESE)
+// =========================
+const BOOKING_URL = "https://calendly.com/lisa-vreams/enneatype-deep-dive"; 
+const JOURNAL_URL = "https://lisareams.com/enneajournal";  
+
+
     // =========================
     // QUIZ CONFIG
     // =========================
@@ -79,6 +86,18 @@
       1:"Reformer", 2:"Helper", 3:"Achiever", 4:"Individualist", 5:"Investigator",
       6:"Loyalist", 7:"Enthusiast", 8:"Challenger", 9:"Peacemaker"
     }[t] || "");
+const typeCtaNudge = (t) => ({
+  1: "If you’re noticing a strong inner critic or a sense of responsibility that never turns off, support can help you discern what actually needs your energy — and what doesn’t.",
+  2: "If this brought up questions about your own needs or boundaries, having a space where you are the focus can be surprisingly grounding.",
+  3: "If this surfaced how closely your sense of self is tied to momentum or achievement, this can be a chance to reconnect with who you are when nothing needs to be proven.",
+  4: "If this reflected parts of you that feel tender, complex, or hard to name, support can help you stay with the insight instead of getting lost in it.",
+  5: "If this clarified patterns you’ve long understood intellectually but want to integrate more fully, a structured container can help bridge insight and action.",
+  6: "If you’re holding a lot of possibilities at once, a deeper exploration can help you feel more grounded in what’s actually true for you.",
+  7: "If this highlighted how quickly you move forward, this might be a moment to pause — not to limit yourself, but to deepen your choices.",
+  8: "If this affirmed your strength and clarity, support can help you use that power with more ease and less cost to yourself.",
+  9: "If this surfaced patterns of going along or staying quiet, support can help you reconnect with your own priorities without creating unnecessary conflict."
+}[t] || "");
+
 
     // EmailJS SDK loader
     const loadEmailJSSDK = () => new Promise((resolve) => {
@@ -277,26 +296,30 @@
         return `${typeName(t)} (${typeLabel(t)}): ${perType[t].pct}%`;
       }).join("\n");
 
-      const subject = `Your Enneagram results: ${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`;
+      const subject = "Your Enneagram snapshot (plus what to do with it)";
+
 
       const body =
 `Top 3 matches:\n${topLines}\n\nFull spread:\n${fullLines}\n\nNext step:\nReply with (1) your top 2 types, (2) what feels most stuck lately, (3) what you want instead — and I’ll point you toward a clear growth path.`;
 
       return {
-        to_email: state.email,
-        to_name: state.name || "there",
-        subject,
-        result_title: `${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`,
-        result_body: body,
-        reply_to: "hello@lisareams.com",
-        owner_copy: OWNER_COPY_EMAIL
-      };
-    };
+  to_email: state.email,
+  to_name: state.name || "there",
+  subject,
+  result_title: `${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`,
+  result_body: body,
+  reply_to: "hello@lisareams.com",
+  owner_copy: OWNER_COPY_EMAIL,
+  booking_url: BOOKING_URL,
+  journal_url: JOURNAL_URL
+};
+
 
     const renderResults = () => {
       const { perType, sorted } = getScore();
       const top = sorted[0];
       const top3 = sorted.slice(0,3);
+const nudge = typeCtaNudge(top.t);
 
       mount.innerHTML = `
         <div class="ea-card ea-results">
@@ -340,8 +363,24 @@
           <div class="ea-divider"></div>
 
           <div class="ea-note">
-            <strong>Interpretation tip:</strong> If your top two are close, you may be between types—or answering from your current season (stress, transition, etc.).
+            <strong>Interpretation tip:</strong> If your top two are close, you may be between types—or answering from your current season (stress, transition, etc.). This is normal, and all it means is that you may need to do a little more learning to lock in your core type.
           </div>
+<div class="ea-divider"></div>
+
+<div class="ea-note">
+  <strong>Want support integrating this?</strong><br/><br/>
+  ${nudge}<br/><br/>
+  Your results are a starting point — not a verdict. If you’d like help making sense of how these patterns show up in your real life, here are two ways to continue.
+</div>
+
+<div class="ea-actions">
+  <a class="ea-btn primary" href="${BOOKING_URL}" target="_blank" rel="noopener noreferrer">
+    Book an Enneagram Deep Dive (90 minutes)
+  </a>
+  <a class="ea-btn" href="${JOURNAL_URL}" target="_blank" rel="noopener noreferrer">
+    Explore Enneajournal
+  </a>
+</div>
 
           <div class="ea-actions">
             <button class="ea-btn" id="ea-retake">Retake (new random order)</button>
