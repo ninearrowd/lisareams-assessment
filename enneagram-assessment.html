@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Enneagram Assessment</title>
+  <style>
+    #ennea-assessment { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.35; }
+    .ea-card { max-width: 920px; margin: 0 auto; padding: 20px; border: 1px solid rgba(0,0,0,.12); border-radius: 14px; }
+    .ea-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    .ea-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+    .ea-sub { margin: 0 0 16px; opacity: .8; }
+    .ea-pill { display:inline-block; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); font-size: 12px; opacity: .85; }
+    .ea-progress-wrap { margin: 14px 0 18px; }
+    .ea-progress { height: 10px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
+    .ea-progress > div { height: 100%; width: 0%; background: rgba(0,0,0,.65); transition: width .25s ease; }
+    .ea-q { font-size: 18px; font-weight: 650; margin: 0 0 14px; }
+    .ea-scale { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 8px; }
+    .ea-slider { width: 100%; }
+    .ea-scale-labels { display:flex; justify-content: space-between; font-size: 12px; opacity: .75; }
+    .ea-num { font-size: 14px; opacity: .85; }
+    .ea-actions { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .ea-btn { appearance:none; border:1px solid rgba(0,0,0,.2); background: #fff; padding: 10px 14px; border-radius: 12px; cursor:pointer; font-weight: 650; }
+    .ea-btn.primary { background: rgba(0,0,0,.85); color: #fff; border-color: rgba(0,0,0,.85); }
+    .ea-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .ea-divider { height:1px; background: rgba(0,0,0,.10); margin: 18px 0; }
+    .ea-input { width: 100%; max-width: 440px; padding: 10px 12px; border:1px solid rgba(0,0,0,.2); border-radius: 12px; font-size: 14px; }
+    .ea-small { font-size: 12px; opacity: .75; }
+    .ea-results h3 { margin: 0 0 10px; }
+    .ea-bar { height: 10px; background: rgba(0,0,0,.08); border-radius: 999px; overflow: hidden; }
+    .ea-bar > div { height:100%; width:0%; background: rgba(0,0,0,.65); transition: width .35s ease; }
+    .ea-rrow { display:grid; grid-template-columns: 80px 1fr 52px; gap: 10px; align-items:center; margin: 10px 0; }
+    .ea-note { padding: 12px 12px; border: 1px dashed rgba(0,0,0,.25); border-radius: 12px; font-size: 13px; opacity: .9; }
+    .ea-foot { margin-top: 14px; font-size: 12px; opacity: .72; }
+    .ea-wrap { padding: 20px; }
+  </style>
+</head>
+<body style="margin:0;">
+  <div class="ea-wrap">
+    <div id="ennea-assessment"></div>
+  </div>
+
+  <script>
+  (() => {
+    // =========================
+    // EMAILJS CONFIG (YOUR VALUES)
+    // =========================
+    const EMAILJS_PUBLIC_KEY  = "UKGu3ra_GWwvtxdtO";
+    const EMAILJS_SERVICE_ID  = "service_dou84q9";
+    const EMAILJS_TEMPLATE_ID = "template_v9pfauy";
+    const OWNER_COPY_EMAIL = "hello@lisareams.com";
+
+    // =========================
+    // QUIZ CONFIG
+    // =========================
+    const SCALE_MIN = 1;
+    const SCALE_MAX = 7;
+    const SCALE_LEFT_LABEL = "Strongly disagree";
+    const SCALE_RIGHT_LABEL = "Strongly agree";
+
+    // Utilities
+    const shuffle = (arr) => {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+
+    const typeName = (t) => ({
+      1:"Type 1", 2:"Type 2", 3:"Type 3", 4:"Type 4", 5:"Type 5",
+      6:"Type 6", 7:"Type 7", 8:"Type 8", 9:"Type 9"
+    }[t] || `Type ${t}`);
+
+    const typeLabel = (t) => ({
+      1:"Reformer", 2:"Helper", 3:"Achiever", 4:"Individualist", 5:"Investigator",
+      6:"Loyalist", 7:"Enthusiast", 8:"Challenger", 9:"Peacemaker"
+    }[t] || "");
+
+    // EmailJS SDK loader
+    const loadEmailJSSDK = () => new Promise((resolve) => {
+      if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) return resolve(false);
+      if (window.emailjs) return resolve(true);
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+      s.onload = () => {
+        try { window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); } catch(e) {}
+        resolve(true);
+      };
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+
+    // =========================
+    // QUESTION BANK (12 per type = 108)
+    // =========================
+    const BANK = [
+      // Type 1
+      { id:"t1_01", type:1, prompt:"I feel responsible for making things better, not just letting them be." },
+      { id:"t1_02", type:1, prompt:"I notice what’s inefficient or inconsistent almost immediately." },
+      { id:"t1_03", type:1, prompt:"I’d rather delay a decision than choose something that feels misaligned." },
+      { id:"t1_04", type:1, prompt:"I have a strong internal sense of what’s fair." },
+      { id:"t1_05", type:1, prompt:"I can get frustrated when people don’t take standards seriously." },
+      { id:"t1_06", type:1, prompt:"When I relax, I sometimes feel like I should be doing something useful." },
+      { id:"t1_07", type:1, prompt:"I correct myself quickly if I’ve said or done something ‘wrong’." },
+      { id:"t1_08", type:1, prompt:"I hold back irritation so I don’t come off harsh." },
+      { id:"t1_09", type:1, prompt:"I care about integrity more than comfort." },
+      { id:"t1_10", type:1, prompt:"I feel proud when I’m disciplined and consistent." },
+      { id:"t1_11", type:1, prompt:"I’m motivated by improvement over time." },
+      { id:"t1_12", type:1, prompt:"I can be my own toughest critic." },
+
+      // Type 2
+      { id:"t2_01", type:2, prompt:"I’m quick to offer support when someone is struggling." },
+      { id:"t2_02", type:2, prompt:"I pay attention to the emotional temperature in a room." },
+      { id:"t2_03", type:2, prompt:"I feel most connected when I’m being helpful." },
+      { id:"t2_04", type:2, prompt:"I can overextend because it’s hard to say no." },
+      { id:"t2_05", type:2, prompt:"I’m tuned into what will make others feel cared for." },
+      { id:"t2_06", type:2, prompt:"It’s uncomfortable to feel unneeded or overlooked." },
+      { id:"t2_07", type:2, prompt:"I often anticipate needs before anyone asks." },
+      { id:"t2_08", type:2, prompt:"I like being the person others can count on." },
+      { id:"t2_09", type:2, prompt:"I ignore my own needs until they get loud." },
+      { id:"t2_10", type:2, prompt:"I’m more comfortable giving appreciation than receiving it." },
+      { id:"t2_11", type:2, prompt:"I can feel hurt if my effort isn’t acknowledged." },
+      { id:"t2_12", type:2, prompt:"I naturally remember small details about people." },
+
+      // Type 3
+      { id:"t3_01", type:3, prompt:"I’m motivated by clear goals and tangible progress." },
+      { id:"t3_02", type:3, prompt:"I’m good at presenting myself in a way that fits the moment." },
+      { id:"t3_03", type:3, prompt:"I feel uncomfortable when I’m not achieving or improving." },
+      { id:"t3_04", type:3, prompt:"I like to be seen as competent and capable." },
+      { id:"t3_05", type:3, prompt:"I’m energized by momentum—when things are moving and working." },
+      { id:"t3_06", type:3, prompt:"I can prioritize results even when feelings are messy." },
+      { id:"t3_07", type:3, prompt:"I measure success by outcomes, not intentions." },
+      { id:"t3_08", type:3, prompt:"I’m aware of how my performance reflects on me." },
+      { id:"t3_09", type:3, prompt:"I stay busy when I’m unsure what I feel." },
+      { id:"t3_10", type:3, prompt:"I feel proud when my work earns recognition." },
+      { id:"t3_11", type:3, prompt:"I’m skilled at getting buy-in from others." },
+      { id:"t3_12", type:3, prompt:"I struggle to slow down when there’s more to do." },
+
+      // Type 4
+      { id:"t4_01", type:4, prompt:"I care more about authenticity than fitting in." },
+      { id:"t4_02", type:4, prompt:"I notice what feels missing before I notice what’s working." },
+      { id:"t4_03", type:4, prompt:"I’m drawn to meaning, depth, and emotional honesty." },
+      { id:"t4_04", type:4, prompt:"I sometimes feel different from others in a hard-to-name way." },
+      { id:"t4_05", type:4, prompt:"I value self-expression as a form of self-respect." },
+      { id:"t4_06", type:4, prompt:"My emotions can feel like a compass I trust." },
+      { id:"t4_07", type:4, prompt:"I want my life to reflect what’s true for me—not what’s expected." },
+      { id:"t4_08", type:4, prompt:"I can be idealistic about how things ‘should’ feel." },
+      { id:"t4_09", type:4, prompt:"I’m sensitive to subtle shifts in connection or tone." },
+      { id:"t4_10", type:4, prompt:"I’d rather be real than be liked." },
+      { id:"t4_11", type:4, prompt:"I’m moved by beauty, symbolism, or art in a deep way." },
+      { id:"t4_12", type:4, prompt:"I struggle when my inner world doesn’t match my outer life." },
+
+      // Type 5
+      { id:"t5_01", type:5, prompt:"I feel safest when I understand how something works." },
+      { id:"t5_02", type:5, prompt:"I prefer observing first before joining in." },
+      { id:"t5_03", type:5, prompt:"I’m selective about where I invest my time and energy." },
+      { id:"t5_04", type:5, prompt:"I need significant alone-time to recharge." },
+      { id:"t5_05", type:5, prompt:"I dislike being pressured for immediate emotional responses." },
+      { id:"t5_06", type:5, prompt:"I feel calmer once I’ve researched or prepared." },
+      { id:"t5_07", type:5, prompt:"I’d rather be competent than charismatic." },
+      { id:"t5_08", type:5, prompt:"I detach to think clearly when things get intense." },
+      { id:"t5_09", type:5, prompt:"I value privacy and personal boundaries highly." },
+      { id:"t5_10", type:5, prompt:"I can feel drained by too much social demand." },
+      { id:"t5_11", type:5, prompt:"I’m comfortable being independent and self-sufficient." },
+      { id:"t5_12", type:5, prompt:"I hold back because I don’t want to be overwhelmed." },
+
+      // Type 6
+      { id:"t6_01", type:6, prompt:"I feel better when I’ve considered what could go wrong." },
+      { id:"t6_02", type:6, prompt:"I value clarity, structure, and knowing what’s expected." },
+      { id:"t6_03", type:6, prompt:"I’m loyal to people I trust, sometimes fiercely." },
+      { id:"t6_04", type:6, prompt:"I notice inconsistencies and want them addressed." },
+      { id:"t6_05", type:6, prompt:"I can be cautious until I feel secure." },
+      { id:"t6_06", type:6, prompt:"I test ideas or people before fully committing." },
+      { id:"t6_07", type:6, prompt:"I’m good at troubleshooting and anticipating problems." },
+      { id:"t6_08", type:6, prompt:"I prefer plans that include contingencies." },
+      { id:"t6_09", type:6, prompt:"I can second-guess decisions after I make them." },
+      { id:"t6_10", type:6, prompt:"I feel more comfortable when trust is earned, not assumed." },
+      { id:"t6_11", type:6, prompt:"I can swing between doubt and determination." },
+      { id:"t6_12", type:6, prompt:"I want to know who and what I can rely on." },
+
+      // Type 7
+      { id:"t7_01", type:7, prompt:"I’m energized by possibility and future plans." },
+      { id:"t7_02", type:7, prompt:"I get restless when life feels too repetitive." },
+      { id:"t7_03", type:7, prompt:"I naturally reframe challenges so I can keep moving." },
+      { id:"t7_04", type:7, prompt:"I like having options more than having certainty." },
+      { id:"t7_05", type:7, prompt:"I’m quick to generate ideas and alternatives." },
+      { id:"t7_06", type:7, prompt:"I can avoid heaviness by staying busy or upbeat." },
+      { id:"t7_07", type:7, prompt:"I’m motivated by freedom and flexibility." },
+      { id:"t7_08", type:7, prompt:"I get excited starting things (sometimes more than finishing)." },
+      { id:"t7_09", type:7, prompt:"I’m at my best when I’m learning, exploring, or experimenting." },
+      { id:"t7_10", type:7, prompt:"I prefer to focus on what’s possible rather than what’s painful." },
+      { id:"t7_11", type:7, prompt:"I dislike feeling trapped by obligations." },
+      { id:"t7_12", type:7, prompt:"I can feel impatient when progress is slow." },
+
+      // Type 8
+      { id:"t8_01", type:8, prompt:"I’m comfortable being direct, even when it creates tension." },
+      { id:"t8_02", type:8, prompt:"I naturally push back when something feels unfair." },
+      { id:"t8_03", type:8, prompt:"I respect strength and honesty more than politeness." },
+      { id:"t8_04", type:8, prompt:"I can take charge quickly when things feel unclear." },
+      { id:"t8_05", type:8, prompt:"I dislike being controlled or micromanaged." },
+      { id:"t8_06", type:8, prompt:"I protect the people I care about." },
+      { id:"t8_07", type:8, prompt:"I’d rather deal with conflict than pretend it’s not there." },
+      { id:"t8_08", type:8, prompt:"I can be intense when I care about something." },
+      { id:"t8_09", type:8, prompt:"I value self-reliance and personal power." },
+      { id:"t8_10", type:8, prompt:"I’m quick to spot weakness in leadership or systems." },
+      { id:"t8_11", type:8, prompt:"I prefer clear boundaries and direct agreements." },
+      { id:"t8_12", type:8, prompt:"I trust people more when they’re straightforward." },
+
+      // Type 9
+      { id:"t9_01", type:9, prompt:"I can see multiple perspectives without much effort." },
+      { id:"t9_02", type:9, prompt:"I value harmony and prefer to keep things calm." },
+      { id:"t9_03", type:9, prompt:"I delay decisions to avoid conflict or pressure." },
+      { id:"t9_04", type:9, prompt:"I feel best when my environment is peaceful." },
+      { id:"t9_05", type:9, prompt:"I lose track of what I want when others are louder." },
+      { id:"t9_06", type:9, prompt:"I’m good at de-escalating tension." },
+      { id:"t9_07", type:9, prompt:"I accommodate to keep relationships steady." },
+      { id:"t9_08", type:9, prompt:"I prefer steady, comfortable rhythms over big disruption." },
+      { id:"t9_09", type:9, prompt:"I can go numb or checked-out when things feel overwhelming." },
+      { id:"t9_10", type:9, prompt:"I dislike being rushed into confrontation." },
+      { id:"t9_11", type:9, prompt:"I can be surprisingly stubborn when pushed." },
+      { id:"t9_12", type:9, prompt:"I feel more grounded when things are simple and settled." }
+    ];
+
+    // =========================
+    // MOUNT + STATE
+    // =========================
+    const mount = document.getElementById("ennea-assessment");
+    if (!mount) return;
+
+    const state = {
+      items: shuffle(BANK),
+      idx: 0,
+      answers: {},
+      email: "",
+      name: ""
+    };
+
+    const getScore = () => {
+      const totals = {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+      const counts = {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+
+      for (const it of state.items) {
+        const raw = state.answers[it.id];
+        if (raw == null) continue;
+        totals[it.type] += raw;
+        counts[it.type] += 1;
+      }
+
+      const perType = {};
+      for (let t=1; t<=9; t++) {
+        const n = counts[t] || 0;
+        const min = n * SCALE_MIN;
+        const max = n * SCALE_MAX;
+        const val = totals[t];
+        const pct = (max === min) ? 0 : Math.round(((val - min) / (max - min)) * 100);
+        perType[t] = { total: val, n, pct };
+      }
+
+      const sorted = Object.keys(perType)
+        .map(k => ({ t: Number(k), ...perType[k] }))
+        .sort((a,b) => b.total - a.total);
+
+      return { perType, sorted };
+    };
+
+    const buildEmailPayload = () => {
+      const { perType, sorted } = getScore();
+      const top3 = sorted.slice(0,3);
+
+      const topLines = top3.map((x, i) => `${i+1}) ${typeName(x.t)} (${typeLabel(x.t)}): ${x.pct}%`).join("\n");
+      const fullLines = Object.keys(perType).map(k => {
+        const t = Number(k);
+        return `${typeName(t)} (${typeLabel(t)}): ${perType[t].pct}%`;
+      }).join("\n");
+
+      const subject = `Your Enneagram results: ${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`;
+
+      const body =
+`Top 3 matches:\n${topLines}\n\nFull spread:\n${fullLines}\n\nNext step:\nReply with (1) your top 2 types, (2) what feels most stuck lately, (3) what you want instead — and I’ll point you toward a clear growth path.`;
+
+      return {
+        to_email: state.email,
+        to_name: state.name || "there",
+        subject,
+        result_title: `${typeName(top3[0].t)} (${typeLabel(top3[0].t)})`,
+        result_body: body,
+        reply_to: "hello@lisareams.com",
+        owner_copy: OWNER_COPY_EMAIL
+      };
+    };
+
+    const renderResults = () => {
+      const { perType, sorted } = getScore();
+      const top = sorted[0];
+      const top3 = sorted.slice(0,3);
+
+      mount.innerHTML = `
+        <div class="ea-card ea-results">
+          <div class="ea-row" style="justify-content: space-between;">
+            <div>
+              <div class="ea-title">Your Results</div>
+              <p class="ea-sub" style="margin-bottom:0;">
+                Highest match: <strong>${typeName(top.t)} (${typeLabel(top.t)})</strong>
+              </p>
+              <p class="ea-small" id="ea-email-status" style="margin:6px 0 0;"></p>
+            </div>
+            <div class="ea-pill">Questions: ${state.items.length}</div>
+          </div>
+
+          <div class="ea-divider"></div>
+
+          <h3>Top 3 matches</h3>
+          ${top3.map(x => `
+            <div class="ea-rrow">
+              <div><strong>${typeName(x.t)}</strong></div>
+              <div class="ea-bar" aria-hidden="true"><div style="width:${x.pct}%;"></div></div>
+              <div style="text-align:right;"><strong>${x.pct}%</strong></div>
+            </div>
+          `).join("")}
+
+          <div class="ea-divider"></div>
+
+          <h3>Full spread</h3>
+          ${Object.keys(perType).map(k => {
+            const t = Number(k);
+            const pct = perType[t].pct;
+            return `
+              <div class="ea-rrow">
+                <div>${t}</div>
+                <div class="ea-bar" aria-hidden="true"><div style="width:${pct}%;"></div></div>
+                <div style="text-align:right;">${pct}%</div>
+              </div>
+            `;
+          }).join("")}
+
+          <div class="ea-divider"></div>
+
+          <div class="ea-note">
+            <strong>Interpretation tip:</strong> If your top two are close, you may be between types—or answering from your current season (stress, transition, etc.).
+          </div>
+
+          <div class="ea-actions">
+            <button class="ea-btn" id="ea-retake">Retake (new random order)</button>
+            <button class="ea-btn" id="ea-review2">Review my answers</button>
+          </div>
+
+          <div class="ea-foot">
+            Not a diagnosis. Just a pattern snapshot.
+          </div>
+        </div>
+      `;
+
+      mount.querySelector("#ea-retake").addEventListener("click", () => {
+        state.items = shuffle(BANK);
+        state.idx = 0;
+        state.answers = {};
+        render();
+      });
+
+      mount.querySelector("#ea-review2").addEventListener("click", () => {
+        state.idx = state.items.length - 1;
+        render();
+      });
+    };
+
+    const render = () => {
+      const totalQ = state.items.length;
+      const answered = Object.keys(state.answers).length;
+      const atEnd = state.idx >= totalQ;
+      const progressPct = Math.round((Math.min(state.idx, totalQ) / totalQ) * 100);
+
+      // Question screen
+      if (!atEnd) {
+        const it = state.items[state.idx];
+        const val = state.answers[it.id] ?? 4;
+
+        mount.innerHTML = `
+          <div class="ea-card" role="region" aria-label="Enneagram Assessment">
+            <div class="ea-row" style="justify-content: space-between;">
+              <div>
+                <div class="ea-title">Enneagram Assessment</div>
+                <p class="ea-sub">Use the slider for each statement. First honest response is usually the cleanest data.</p>
+              </div>
+              <div class="ea-pill">${answered}/${totalQ} answered</div>
+            </div>
+
+            <div class="ea-progress-wrap" aria-hidden="true">
+              <div class="ea-progress"><div style="width:${progressPct}%;"></div></div>
+            </div>
+
+            <div class="ea-q">Q${state.idx + 1}. ${it.prompt}</div>
+
+            <div class="ea-scale">
+              <input class="ea-slider" id="ea-slider" type="range" min="${SCALE_MIN}" max="${SCALE_MAX}" step="1" value="${val}" />
+              <div class="ea-scale-labels">
+                <span>${SCALE_LEFT_LABEL}</span>
+                <span>${SCALE_RIGHT_LABEL}</span>
+              </div>
+              <div class="ea-num">Selected: <strong id="ea-val">${val}</strong> / ${SCALE_MAX}</div>
+            </div>
+
+            <div class="ea-actions">
+              <button class="ea-btn" id="ea-back" ${state.idx === 0 ? "disabled": ""}>Back</button>
+              <button class="ea-btn primary" id="ea-next">${state.idx === totalQ - 1 ? "Finish" : "Next"}</button>
+            </div>
+
+            <div class="ea-foot">Not a diagnosis. Just a pattern snapshot.</div>
+          </div>
+        `;
+
+        const slider = mount.querySelector("#ea-slider");
+        const valEl = mount.querySelector("#ea-val");
+        const backBtn = mount.querySelector("#ea-back");
+        const nextBtn = mount.querySelector("#ea-next");
+
+        slider.addEventListener("input", () => { valEl.textContent = slider.value; });
+
+        backBtn.addEventListener("click", () => { state.idx = Math.max(0, state.idx - 1); render(); });
+
+        nextBtn.addEventListener("click", () => {
+          state.answers[it.id] = Number(slider.value);
+          state.idx += 1;
+          render();
+        });
+
+        return;
+      }
+
+      // Email gate screen
+      const { sorted } = getScore();
+      const top = sorted[0];
+
+      mount.innerHTML = `
+        <div class="ea-card">
+          <div class="ea-title">Send me my results</div>
+          <p class="ea-sub">Enter your email to view results on this page and receive them by email.</p>
+
+          <div class="ea-divider"></div>
+
+          <div class="ea-row">
+            <div style="flex:1; min-width: 260px;">
+              <label class="ea-small" for="ea-name">First name (optional)</label><br/>
+              <input class="ea-input" id="ea-name" type="text" placeholder="Lisa" value="${state.name || ""}" />
+            </div>
+            <div style="flex:1; min-width: 260px;">
+              <label class="ea-small" for="ea-email">Email (required)</label><br/>
+              <input class="ea-input" id="ea-email" type="email" placeholder="you@example.com" value="${state.email || ""}" />
+            </div>
+          </div>
+
+          <p class="ea-small" id="ea-email-hint" style="margin-top:10px;"></p>
+
+          <div class="ea-actions">
+            <button class="ea-btn" id="ea-review">Review Answers</button>
+            <button class="ea-btn primary" id="ea-show">Show My Results</button>
+          </div>
+
+          <div class="ea-divider"></div>
+
+          <div class="ea-note">
+            <strong>Teaser:</strong> your top match is currently leaning toward <strong>${typeName(top.t)} (${typeLabel(top.t)})</strong>.
+          </div>
+
+          <div class="ea-foot">
+            By submitting, you agree to receive your results and occasional follow-ups. You can unsubscribe anytime.
+          </div>
+        </div>
+      `;
+
+      const nameEl = mount.querySelector("#ea-name");
+      const emailEl = mount.querySelector("#ea-email");
+      const hintEl = mount.querySelector("#ea-email-hint");
+
+      const updateHint = () => {
+        const email = emailEl.value.trim();
+        if (!email) { hintEl.textContent = ""; return; }
+        hintEl.textContent = isValidEmail(email) ? "✅ Looks good." : "⚠️ Please enter a valid email address.";
+      };
+      emailEl.addEventListener("input", updateHint);
+      updateHint();
+
+      mount.querySelector("#ea-review").addEventListener("click", () => {
+        state.idx = state.items.length - 1;
+        render();
+      });
+
+      mount.querySelector("#ea-show").addEventListener("click", async () => {
+        state.name = nameEl.value.trim();
+        state.email = emailEl.value.trim();
+
+        if (!isValidEmail(state.email)) {
+          hintEl.textContent = "⚠️ Please enter a valid email address to continue.";
+          return;
+        }
+
+        // Show results immediately
+        renderResults();
+
+        // Attempt email send
+        const enabled = await loadEmailJSSDK();
+        const status = document.getElementById("ea-email-status");
+        if (!enabled || !window.emailjs) {
+          if (status) status.textContent = "✅ Results shown here. (Email service not available.)";
+          return;
+        }
+
+        try {
+          const payload = buildEmailPayload();
+          await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload);
+          if (status) status.textContent = "✅ Results sent to your email.";
+        } catch (e) {
+          if (status) status.textContent = "⚠️ Results shown here. Email sending didn’t go through.";
+        }
+      });
+    };
+
+    // Start
+    render();
+  })();
+  </script>
+</body>
+</html>
