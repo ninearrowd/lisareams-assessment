@@ -323,15 +323,12 @@
     };
 
     const observeHeightChanges = () => {
-      // Post on load + resize
       window.addEventListener("load", postEmbedHeight);
       window.addEventListener("resize", postEmbedHeight);
 
-      // Post after DOM changes (question changes, results rendering, email gate, etc.)
       const mo = new MutationObserver(() => postEmbedHeight());
       mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
 
-      // A tiny extra nudge shortly after render for slow fonts/layout
       setTimeout(postEmbedHeight, 250);
       setTimeout(postEmbedHeight, 900);
     };
@@ -343,13 +340,41 @@
     const EMAILJS_PUBLIC_KEY  = "UKGu3ra_GWwvtxdtO";
     const EMAILJS_SERVICE_ID  = "service_dou84q9";
     const EMAILJS_TEMPLATE_ID = "template_v9pfauy";
-    const OWNER_COPY_EMAIL = "hello@lisareams.com";
+    const OWNER_COPY_EMAIL    = "hello@lisareams.com";
 
     // =========================
-    // CTA LINKS (REPLACE THESE IF NEEDED)
+    // CTA LINKS
     // =========================
     const BOOKING_URL = "https://calendly.com/lisa-vreams/enneatype-deep-dive";
-    const JOURNAL_URL = "https://lisareams.com/enneajournal";
+    const JOURNAL_URL = "https://www.lisareams.com/enneajournal";
+
+    // =========================
+    // LEAD CAPTURE (GOOGLE SHEETS)
+    // =========================
+    const SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwVcJYNBCnaIK5u603487D55yL5BPDbj9vwYlJyl3GYPWzEWyJBttHmqx9cKGGFIM6n/exec";
+    const SHEETS_KEY = "ennea-leads-2025-lisa-private";
+
+    function saveLeadToSheet({ email, name, result_title, result_body }) {
+      try {
+        fetch(SHEETS_WEBHOOK_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            key: SHEETS_KEY,
+            email,
+            name: name || "",
+            result_title: result_title || "",
+            result_body: result_body || "",
+            source: "enneagram-assessment",
+            page_url: window.location.href,
+            user_agent: navigator.userAgent
+          })
+        });
+      } catch (e) {
+        console.warn("Sheets lead capture failed:", e);
+      }
+    }
 
     // =========================
     // QUIZ CONFIG
@@ -549,7 +574,9 @@
       idx: 0,
       answers: {},
       email: "",
-      name: ""
+      name: "",
+      result_title: "",
+      result_body: ""
     };
 
     const getScore = () => {
@@ -584,7 +611,10 @@
       const { perType, sorted } = getScore();
       const top3 = sorted.slice(0,3);
 
-      const topLines = top3.map((x, i) => `${i+1}) ${typeName(x.t)} (${typeLabel(x.t)}): ${x.pct}%`).join("\n");
+      const topLines = top3.map((x, i) =>
+        `${i+1}) ${typeName(x.t)} (${typeLabel(x.t)}): ${x.pct}%`
+      ).join("\n");
+
       const fullLines = Object.keys(perType).map(k => {
         const t = Number(k);
         return `${typeName(t)} (${typeLabel(t)}): ${perType[t].pct}%`;
@@ -609,6 +639,11 @@
     };
 
     const renderResults = () => {
+      // ✅ FIX: store result_title/result_body on state so Google Sheets capture has real content
+      const payloadForState = buildEmailPayload();
+      state.result_title = payloadForState.result_title;
+      state.result_body  = payloadForState.result_body;
+
       const { perType, sorted } = getScore();
       const top = sorted[0];
       const top3 = sorted.slice(0,3);
@@ -691,6 +726,8 @@
         state.items = shuffle(BANK);
         state.idx = 0;
         state.answers = {};
+        state.result_title = "";
+        state.result_body = "";
         render();
       });
 
@@ -752,7 +789,6 @@
         const backBtn = mount.querySelector("#ea-back");
         const nextBtn = mount.querySelector("#ea-next");
 
-        // Keep thumb responsive + update text
         slider.addEventListener("input", () => {
           valEl.textContent = slider.value;
           postEmbedHeight();
@@ -840,8 +876,16 @@
           return;
         }
 
-        // Show results immediately
+        // Show results immediately (also sets state.result_title/body)
         renderResults();
+
+        // ✅ Save lead (fire-and-forget; never blocks UX)
+        saveLeadToSheet({
+          email: state.email,
+          name: state.name,
+          result_title: state.result_title,
+          result_body: state.result_body
+        });
 
         // Attempt email send
         const enabled = await loadEmailJSSDK();
@@ -857,6 +901,7 @@
           await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload);
           if (status) status.textContent = "✅ Results sent to your email.";
         } catch (e) {
+          console.warn("Email send failed:", e);
           if (status) status.textContent = "⚠️ Results shown here. Email sending didn’t go through.";
         }
 
