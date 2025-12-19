@@ -354,27 +354,29 @@
     const SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyEoyfRLmKDwVoloAyqzZQrm7b-AmIJ3AnTIP-TB5euUfFf1Hxbf_CJb8syH5Ii7w30/exec";
     const SHEETS_KEY = "ennea-leads-2025-lisa-private";
 
-    function saveLeadToSheet({ email, name, result_title, result_body }) {
-      try {
-        fetch(SHEETS_WEBHOOK_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            key: SHEETS_KEY,
-            email,
-            name: name || "",
-            result_title: result_title || "",
-            result_body: result_body || "",
-            source: "enneagram-assessment",
-            page_url: window.location.href,
-            user_agent: navigator.userAgent
-          })
-        });
-      } catch (e) {
-        console.warn("Sheets lead capture failed:", e);
-      }
-    }
+function saveLeadToSheet({ email, name, result_title, result_body, marketing_opt_in }) {
+  try {
+    fetch(SHEETS_WEBHOOK_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        key: SHEETS_KEY,
+        email,
+        name: name || "",
+        result_title: result_title || "",
+        result_body: result_body || "",
+        marketing_opt_in: !!marketing_opt_in,
+        source: "enneagram-assessment",
+        page_url: window.location.href,
+        user_agent: navigator.userAgent
+      })
+    });
+  } catch (e) {
+    console.warn("Sheets lead capture failed:", e);
+  }
+}
+
 
     // =========================
     // QUIZ CONFIG
@@ -813,6 +815,7 @@
       const { sorted } = getScore();
       const top = sorted[0];
 
+
       mount.innerHTML = `
         <div class="ea-card">
           <div class="ea-title">Send me my results</div>
@@ -832,6 +835,17 @@
           </div>
 
           <p class="ea-small" id="ea-email-hint" style="margin-top:10px;"></p>
+<p class="ea-small" id="ea-email-hint" style="margin-top:10px;"></p>
+
+<div style="margin-top:12px;">
+  <label class="ea-small" style="display:flex; gap:10px; align-items:flex-start; line-height:1.35;">
+    <input id="ea-consent-optin" type="checkbox" style="margin-top:2px;">
+    <span>
+      Yes — you can email me occasional Enneagram insights and offers. (Optional)
+      <br><span style="opacity:.85;">You’ll still receive your results either way.</span>
+    </span>
+  </label>
+</div>
 
           <div class="ea-actions">
             <button class="ea-btn" id="ea-review">Review Answers</button>
@@ -853,6 +867,8 @@
       const nameEl = mount.querySelector("#ea-name");
       const emailEl = mount.querySelector("#ea-email");
       const hintEl = mount.querySelector("#ea-email-hint");
+const consentEl = mount.querySelector("#ea-consent-optin");
+
 
       const updateHint = () => {
         const email = emailEl.value.trim();
@@ -870,6 +886,7 @@
       mount.querySelector("#ea-show").addEventListener("click", async () => {
         state.name = nameEl.value.trim();
         state.email = emailEl.value.trim();
+state.marketing_opt_in = consentEl ? consentEl.checked : false;
 
         if (!isValidEmail(state.email)) {
           hintEl.textContent = "⚠️ Please enter a valid email address to continue.";
@@ -880,12 +897,14 @@
         renderResults();
 
         // ✅ Save lead (fire-and-forget; never blocks UX)
-        saveLeadToSheet({
-          email: state.email,
-          name: state.name,
-          result_title: state.result_title,
-          result_body: state.result_body
-        });
+    saveLeadToSheet({
+  email: state.email,
+  name: state.name,
+  result_title: state.result_title,
+  result_body: state.result_body,
+  marketing_opt_in: !!state.marketing_opt_in
+});
+
 
         // Attempt email send
         const enabled = await loadEmailJSSDK();
@@ -917,4 +936,3 @@
   </script>
 </body>
 </html>
-
